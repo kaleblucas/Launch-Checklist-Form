@@ -1,4 +1,5 @@
 window.addEventListener("load", function(){
+
    const launchForm = document.getElementById("launchForm");
    const pilotName = document.getElementsByName("pilotName")[0];
    const copilotName = document.getElementsByName("copilotName")[0];
@@ -12,120 +13,104 @@ window.addEventListener("load", function(){
    const launchStatus = document.getElementById("launchStatus");
    const missionTarget = document.getElementById("missionTarget");
 
-   function inputValidation(id){
-      // console.log("getting inputvalidation")
-      // console.log(typeof(id.value))
-      if (id.value.length <= 0) {
-         // console.log("event prevented")
-         // event.preventDefault();
-         return false;
-      }
-   }
-   function stringValidation(id){
-      if (id.type === "text"){
-         // console.log(id.value + "is type:" +typeof(id.value))
-         stringValue = Number(id.value)
-         // console.log(id.value + "is type:" +typeof(id.value))
-         if (!isNaN(stringValue)){
-            return false
-         }
-      }
-   }
-   function numberValidation(id){
-      if (id.type === "number"){
-         // console.log(id.value + "is type:" +typeof(id.value))
-         numberValue = Number(id.value)
-         // console.log(id.value + "is type:" +typeof(id.value))
-         if (isNaN(numberValue)){
-            return false
-         }
-      
-      }
-   }
-   function inputValidationOnArray(arr){
+   let validationMethod = {
+      checkInput: function(id){
+                     if (id.value.length <= 0) {
+                        return false;
+                     }
+                  },
+      checkString:   function(id){
+                        stringValue = Number(id.value)
+                        if (!isNaN(stringValue)){
+                           return false
+                           }
+                        },
+      checkNumber:   function(id){
+                        numberValue = Number(id.value)
+                        if (isNaN(numberValue)){
+                           return false
+                        }
+                     }
+   };
+
+   function validateArray(arr, type){
       for (i=0; i<arr.length;i++){
-         if (inputValidation(arr[i]) === false){
+         if (validationMethod.checkInput(arr[i]) === false){
             window.alert("All fields are required.");
             return;
-         } else if (stringValidation(arr[i]) === false){
+         } else if (validationMethod.checkString(arr[i]) === false && type === "string"){
             window.alert("Please enter a valid name.");
             return;
-         } else if (numberValidation(arr[i]) === false){
+         } else if (validationMethod.checkNumber(arr[i]) === false && type === "number"){
             window.alert("Please enter a valid number.");
             return;
          }
       }
-   }
+      return true;
+   };
 
-   function checkFuelLevel(fuelLevelParam = Number(fuelLevel.value)) {
-      // code fuel level check
-            //if fuelLevel < 10,000 l, update div visibility, change text of launchStatus to red and display "Shuttle not ready for launch"
+   function reportFuelLevel(fuelLevelParam = Number(fuelLevel.value)) {
       if (fuelLevelParam < 10000){
-         console.log("fuelLevel LOW")
          faultyItems.style.visibility = "visible";
          launchStatus.style.color = "red";
-         launchStatus.innerHTML = "Shuttle not ready for launch"
-         fuelStatus.innerHTML = "Fuel level too low for launch"
-      } else return true
-   }
+         launchStatus.innerHTML = "Shuttle not ready for launch";
+         fuelStatus.innerHTML = "Fuel level too low for launch";
+      } else return true;
+   };
 
-   function checkCargoMass(cargoMassParam = Number(cargoMass.value)) {
-      //code cargo mass check
-      //if cargoMass > 10,000 kg, update div visibility, change text of launchStatus to red and display "Shuttle not ready for launch"
+   function reportCargoMass(cargoMassParam = Number(cargoMass.value)) {
       if (cargoMassParam > 10000){
-         console.log("cargo TOO FULL")
          faultyItems.style.visibility = "visible";
          launchStatus.style.color = "red";
-         launchStatus.innerHTML = "Shuttle not ready for launch"
-         cargoStatus.innerHTML = "Cargo mass too high for launch"
-      } else return true
-   }
+         launchStatus.innerHTML = "Shuttle not ready for launch";
+         cargoStatus.innerHTML = "Cargo mass too high for launch";
+      } else return true;
+   };
 
-   function checkLaunchStatus() {
-      //code launch status check
-      //if shuttle is ready to launch, change text of launchStatus to green and display "Shuttle is ready for launch"
-      if (checkCargoMass() && checkFuelLevel()){
-         console.log("LAUNCH READY")
+   function reportLaunchStatus() {
+      pilotStatus.innerHTML = `Pilot, ${pilotName.value}, is ready.`;
+      copilotStatus.innerHTML = `Co-pilot, ${copilotName.value}, is ready.`;
+      if (reportCargoMass() && reportFuelLevel()){
+         faultyItems.style.visibility = "hidden";
          launchStatus.style.color = "green";
          launchStatus.innerHTML = "Shuttle is ready for launch";
+         return true;
+      } else {
+         reportFuelLevel();
+         reportCargoMass();
       }
-   }
-
+   };
+   
    function reportMission() {
-      //code json fetch here
-      fetch("./planets.json").then(function(response) {
+      fetch("https://handlers.education.launchcode.org/static/planets.json").then(function(response) {
          response.json().then(function(json) {
-         }  
-      }
-   }
-
+            let target = Math.floor(Math.random()*json.length);
+            missionTarget.innerHTML = `
+               <h2>Mission Destination</h2>
+               <ol>
+                  <li>Name: ${json[target].name}</li>
+                  <li>Diameter: ${json[target].diameter}</li>
+                  <li>Star: ${json[target].star}</li>
+                  <li>Distance from Earth: ${json[target].distance}</li>
+                  <li>Number of Moons: ${json[target].moons}</li>
+               </ol>
+               <img src="${json[target].image}">
+            `;
+         })  
+      })
+   };
 
    launchForm.addEventListener("submit", function(){
       event.preventDefault();
-      let formInputArray = [pilotName, copilotName, fuelLevel, cargoMass];
-      inputValidationOnArray(formInputArray);
-      checkCargoMass();
-      checkFuelLevel();
-      checkLaunchStatus();
-      pilotStatus.innerHTML = `Pilot, ${pilotName.value}, is ready.`
-      copilotStatus.innerHTML = `Co-pilot, ${copilotName.value}, is ready.`
+      let formNumberArray = [fuelLevel, cargoMass];
+      let formStringArray = [pilotName, copilotName];
+      if (validateArray(formStringArray, "string") && validateArray(formNumberArray, "number")){
+         if (reportLaunchStatus()){
+            reportMission();
+         }
+      };
+      
       
    });
  });
 
-
-
-
-// Write your JavaScript code here!
-
-/* This block of code shows how to format the HTML once you fetch some planetary JSON!
-<h2>Mission Destination</h2>
-<ol>
-   <li>Name: ${}</li>
-   <li>Diameter: ${}</li>
-   <li>Star: ${}</li>
-   <li>Distance from Earth: ${}</li>
-   <li>Number of Moons: ${}</li>
-</ol>
-<img src="${}">
-*/
